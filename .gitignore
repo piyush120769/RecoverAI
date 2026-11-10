@@ -1,0 +1,26 @@
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+
+# Database
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+desktop.ini
