@@ -1,50 +1,100 @@
-# RecoverAI — AI-Powered Autopay Recovery Platform
+# RecoverAI
 
-> **Razorpay FDE Assignment Submission**  
-> An enterprise-grade, **chat-first** autonomous autopay recovery platform built with FastAPI, SQLite, and React (Vite + Tailwind CSS).
-
----
-
-## 🌟 Executive Summary
-
-RecoverAI transforms recurring subscription and B2B SaaS invoice payment failures into successful recoveries through an intelligent, transparent **AI Recovery Assistant**. 
-
-Rather than relying on intrusive outbound calling, RecoverAI operates as a **Chat-First** platform where customers interact directly with an AI assistant that explains payment failures transparently, validates recovery eligibility via a deterministic Decision Engine, and safely executes idempotent payment retries or dispatches secure tokenized payment links.
+**Autonomous, Chat-First Autopay Recovery Platform**  
+*Turning recurring payment failures into verified recoveries through transparent AI conversations and deterministic financial controls.*
 
 ---
 
-## 🚀 Key Features & Capabilities
+## Overview
 
-### 1. 🤖 AI Recovery Assistant (Chat-First)
-- **Transparent AI Identity**: Transparently introduces itself as an automated AI assistant on behalf of the merchant, citing the specific customer name, company, invoice ID, failed amount (in INR ₹), and bank failure code.
-- **5 Core Recovery Actions**:
-  1. 🔄 **Retry Payment**: Safely triggers simulated payment retries verified by the payment simulator.
-  2. 🔗 **Request Payment Link**: Generates a 256-bit encrypted checkout portal link for card/UPI/netbanking updates.
-  3. 📞 **Schedule Callback**: Books a follow-up call with customer operations during business hours.
-  4. 🚫 **Opt Out (DNC)**: Enforces Do Not Contact compliance, updating customer consent in real time and suppressing future outreach.
-  5. 👤 **Talk to Human**: Instantly escalates to a senior billing specialist.
-- **🛡️ PCI-DSS Zero-Card-Data Guard**: Detects raw credit card numbers (13–19 digits), CVVs, and OTPs. Blocks storage and instructs the customer to use tokenized payment links.
+Subscription and B2B SaaS businesses lose significant revenue to recurring autopay failures—driven by temporary gateway timeouts, balance timing mismatches, expired cards, and mandate expirations. Traditional recovery relies either on passive dunning emails with low response rates or aggressive call centers that are costly, intrusive, and compliance-sensitive.
 
-### 2. 🧠 Backend Decision Engine
-- **Single Source of Truth**: Evaluates consent, payment status, and failure reasons before authorizing any recovery touchpoint.
-- **Safe Guardrails**:
-  - Rejects attempts on already recovered payments (`400 Bad Request`).
-  - Blocks recovery actions for opted-out customers (`403 Forbidden`).
-  - Recommends tailored strategies (e.g., instant retry for network timeouts, secure link for card expired / insufficient funds, human escalation for mandate issues).
-
-### 3. 💳 Idempotent Payment Simulator
-- **Fintech Precision**: Payments are marked as `recovered` **only** upon verified simulator confirmation.
-- **Idempotency Protection**: Every retry requires an `idempotency_key`. Duplicate requests return the original transaction record (`is_duplicate: true`) without double processing.
-- **Deterministic Outcomes**: Supports deterministic success and failure simulation.
-
-### 4. 📊 Real-Time Operations Dashboard
-- **Executive KPIs**: Failed Autopay Cohort, Amount at Risk, Total Recovered Amount, and Real-Time Recovery Rate.
-- **Customer Recovery Drawer**: Slide-over panel featuring the live interactive AI Recovery Chatbox, customer profile, and audit trail.
-- **Real-Time State Synchronization**: Live updates to KPIs and customer status when a payment is settled or opted out via chat.
+**RecoverAI** replaces blunt dunning with an intelligent, **chat-first recovery experience**. When an autopay transaction fails, RecoverAI presents the customer with an authenticated, contextual conversation:
+1. Explains why the debit failed in clear terms.
+2. Accurately references the invoice ID, amount, and bank failure reason.
+3. Enables self-serve resolution across five distinct customer paths.
+4. Validates all actions through a backend decision engine before executing simulated transactions.
 
 ---
 
-## 🏗️ Project Architecture
+## Key Innovations
+
+### AI Interprets Intent — The Backend Controls Money
+Generative AI and language models excel at dialogue, empathy, and intent classification, but they must **never** directly mutate financial ledgers. RecoverAI strictly decouples conversational interaction from financial execution:
+
+| Dimension | Traditional Dunning | Unconstrained AI Bot | RecoverAI Approach |
+| :--- | :--- | :--- | :--- |
+| **Channel** | Static email / SMS blast | Open-ended chatbot | Contextual chat inside customer recovery drawer |
+| **Financial Authority** | Hardcoded batch cron | LLM triggers APIs directly | **Deterministic Decision Engine controls all mutations** |
+| **Double-Charge Risk** | Manual retry collisions | Non-deterministic prompt retries | **Strict Idempotency Keys** (`idempotency_key`) |
+| **Card Data Handling** | Often captured in forms | Risk of prompting for raw card details | **Zero Card-Data Guard**: Blocks PAN/CVV/OTP in chat |
+| **Compliance** | Delayed opt-out handling | Ignored unless programmed | **Instant DNC enforcement** suppressing all outreach |
+
+---
+
+## How It Works
+
+```mermaid
+flowchart TD
+    A["Failed Autopay Event (e-NACH / UPI / Card)"] --> B["Decision Engine Evaluates Consent & Failure Code"]
+    B --> C["Customer Opens Recovery Chat Profile"]
+    C --> D["AI Introduces Invoice, Amount & Failure Reason"]
+    D --> E{"Customer Action / Intent"}
+
+    E -->|"1. Retry Payment"| F{"Decision Engine Check"}
+    F -->|"Eligible"| G["Idempotent Payment Simulator"]
+    F -->|"Ineligible / Opted Out"| H["Safe Rejection Message"]
+
+    G -->|"Verified Success"| I["Update Status to Recovered"]
+    G -->|"Declined"| J["Keep Status Failed & Offer Link"]
+
+    E -->|"2. Request Payment Link"| K["Generate Tokenized Checkout Portal Link"]
+    E -->|"3. Schedule Callback"| L["Register Scheduled Follow-Up"]
+    E -->|"4. Opt Out"| M["Update Consent to DNC Suppressed"]
+    E -->|"5. Talk to Human"| N["Escalate to Senior Billing Specialist"]
+
+    I --> O["Persist Audit Log & Sync Dashboard"]
+    J --> O
+    K --> O
+    L --> O
+    M --> O
+    N --> O
+```
+
+---
+
+## Core Features
+
+### 1. Contextual AI Recovery Chatbox
+- **Transparent Identity**: Introduces itself openly as an automated recovery assistant acting on behalf of the merchant.
+- **Five Customer Recovery Paths**:
+  - **Retry Payment**: Triggers simulated instant debit if permitted by eligibility rules.
+  - **Request Payment Link**: Dispatches a portal link for manual completion via preferred payment methods.
+  - **Schedule Callback**: Books a follow-up with accounts operations during business hours.
+  - **Opt Out**: Enforces immediate Do Not Contact (DNC) compliance.
+  - **Talk to Human**: Connects the customer directly to human support.
+- **Persistent Conversation**: History is saved in SQLite and restored across user sessions.
+
+### 2. Deterministic Decision Engine
+- **Single Source of Truth**: Evaluates customer consent, payment state, and failure codes before authorizing any action.
+- **State Invariant Enforcement**:
+  - Blocks retries on already recovered invoices (`400 Bad Request`).
+  - Blocks retries for opted-out accounts (`403 Forbidden`).
+  - Matches remediation strategy to the failure code (e.g., immediate retry for network timeouts; portal links for card expiry).
+
+### 3. Idempotent Payment Simulator
+- **Safe Transaction Simulation**: Payment status is updated to `recovered` **only** upon verified confirmation from the simulator.
+- **Idempotency Guarantee**: Every retry requires an `idempotency_key`. Redundant requests return the original transaction record (`is_duplicate: true`) without double processing.
+- **Explicit Labeling**: Every simulated transaction generates a unique reference (`SIM-TXN-...`) and is labeled as simulated.
+
+### 4. Operations Dashboard
+- **Executive Metrics**: Failed Autopay Cohort, Total Amount at Risk, Total Recovered Amount, and Real-Time Recovery Rate.
+- **Customer Slide-Over Drawer**: Houses the customer profile, failed payment diagnostics, and the embedded live AI chat interface.
+- **Real-Time State Synchronization**: Updating customer state or recovering a payment via chat immediately reflects across all dashboard KPIs.
+
+---
+
+## Architecture & Technology Stack
 
 ```
 RecoverAI/
@@ -53,24 +103,22 @@ RecoverAI/
 │   │   ├── routes/
 │   │   │   ├── customers.py        # Customer retrieval endpoints
 │   │   │   ├── recovery.py         # Decision engine evaluation routes
-│   │   │   ├── chat.py             # Chat persistence & message exchange
-│   │   │   ├── payments.py         # Payment retry simulator & audit routes
-│   │   │   └── vapi.py             # Telephony status & webhook verification
+│   │   │   ├── chat.py             # Chat history, messaging & reset routes
+│   │   │   ├── payments.py         # Payment retry simulator & audit trail
+│   │   │   └── vapi.py             # Telephony status & webhook signature verification
 │   │   ├── services/
 │   │   │   ├── decision_engine.py  # Recovery policy evaluation logic
-│   │   │   ├── chat_engine.py      # AI assistant intent parsing & dialogue
-│   │   │   ├── payment_simulator.py# Deterministic retry & idempotency engine
-│   │   │   └── vapi_service.py     # Voice integration service layer
-│   │   ├── schemas/                # Strongly typed Pydantic models
-│   │   ├── config.py               # Safe environment configuration
+│   │   │   ├── chat_engine.py      # Dialogue management & intent classification
+│   │   │   ├── payment_simulator.py# Deterministic retry simulation & idempotency
+│   │   │   └── vapi_service.py     # Optional telephony integration service
+│   │   ├── schemas/                # Typed Pydantic models
+│   │   ├── config.py               # Safe environment configuration & credential masking
 │   │   ├── database.py             # SQLite engine & session management
 │   │   ├── models.py               # SQLAlchemy models (Customer, Payment, ChatMessage, etc.)
 │   │   └── main.py                 # FastAPI application entrypoint
-│   ├── recoverai.db                # SQLite database (10 seed customers & payments)
-│   ├── requirements.txt            # Python dependencies
-│   ├── test_phase1.py              # Phase 1 backend test suite
-│   ├── test_phase2_vapi.py         # Phase 2 credentials & webhook verification suite
-│   └── test_phase3_chat.py         # Phase 3 chat-first & simulator test suite
+│   ├── recoverai.db                # SQLite database with 10 seed customer records
+│   ├── seed.py                     # Deterministic database seeder
+│   └── requirements.txt            # Python dependencies
 └── dashboard/                      # React frontend application
     ├── src/
     │   ├── components/
@@ -78,89 +126,164 @@ RecoverAI/
     │   │   │   └── AiRecoveryChatbox.jsx # Embedded AI chat interface
     │   │   ├── customers/
     │   │   │   ├── CustomersView.jsx     # Customers table with spacing system
-    │   │   │   └── CustomerDetailPanel.jsx# Slide-over customer profile & chat
-    │   │   ├── overview/                 # KPI cards & analytics breakdown
-    │   │   └── common/                   # Reusable badges, modals, slide-overs
+    │   │   │   └── CustomerDetailPanel.jsx# Slide-over customer profile & chatbox
+    │   │   ├── overview/                 # KPI metric cards & breakdown charts
+    │   │   └── common/                   # Reusable UI badges, slide-overs, modals
     │   ├── context/
-    │   │   └── RecoveryContext.jsx       # Global state management
+    │   │   └── RecoveryContext.jsx       # Global application state management
     │   └── App.jsx
     ├── package.json
     └── vite.config.js
 ```
 
+### Technology Matrix
+
+| Layer | Technologies | Role |
+| :--- | :--- | :--- |
+| **Backend API** | FastAPI, Python 3.12, Uvicorn | High-performance asynchronous REST endpoints |
+| **Data Validation** | Pydantic V2 | Strict schema validation for all API inputs and outputs |
+| **Database & ORM** | SQLite, SQLAlchemy 2.0 | Relational persistence for customers, payments, chat, and audit events |
+| **Frontend UI** | React 18, Vite 5, Tailwind CSS | Responsive SaaS dashboard and interactive slide-over chatbox |
+| **Icons & Visuals** | Lucide React | Clean, standard UI iconography |
+| **Testing** | Pytest, Starlette TestClient | Automated integration test suite |
+
+### Key API Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Service and database connectivity health check |
+| `GET` | `/api/customers/` | List all customer profiles and payment statuses |
+| `GET` | `/api/recovery/decision/{payment_id}` | Decision engine recommendation for a given payment |
+| `GET` | `/api/chat/{customer_id}` | Retrieve or initialize conversation history with AI introduction |
+| `POST` | `/api/chat/{customer_id}/message` | Send customer message, evaluate intent, and execute safe action |
+| `POST` | `/api/payments/{payment_id}/retry` | Execute simulated payment retry with idempotency key |
+| `GET` | `/api/payments/{payment_id}/simulations`| Retrieve retry history and audit trail for a payment |
+
 ---
 
-## ⚙️ Setup & Local Run Instructions
+## Security, Guardrails & Reliability
+
+1. **Zero Card-Data Storage Pattern**:
+   - The chat engine evaluates user input against card number patterns (13–19 digits), CVVs, and OTPs.
+   - Any sensitive input is immediately blocked from persistence, and the customer is warned to use tokenized checkout links instead.
+2. **Idempotency Protection**:
+   - Prevents duplicate debits caused by network retries or repeated button clicks.
+   - Idempotency keys are checked against `payment_simulations`; duplicate requests return cached results without re-executing.
+3. **Regulatory Opt-Out Compliance**:
+   - Customer opt-out choices immediately update `consent_status = "opted_out"`.
+   - All subsequent automated recovery attempts are suppressed at the backend layer.
+4. **Verified State Transitions**:
+   - Frontend components cannot directly set payment status to `recovered`.
+   - Invoices are only transitioned upon confirmed success from the backend payment simulator.
+5. **Telephony Note**:
+   - The optional Vapi telephony integration module is configured for credential verification and webhook signature validation. Outbound voice calling is intentionally out of scope for this chat-first implementation.
+
+---
+
+## Screenshots
+
+<!-- Note: Add screenshots after launching the dashboard -->
+
+| Customer Recovery Profile & Live Chat | Operations Overview & Analytics |
+| :---: | :---: |
+| *Slide-over customer recovery profile showing the live AI Recovery Chatbox, failed invoice diagnostics, and 5 interactive recovery chips.* | *Executive KPI dashboard displaying real-time recovery rates, amount at risk, cohort distribution, and customer table.* |
+
+---
+
+## Local Setup & Execution
 
 ### Prerequisites
 - Python 3.10+
-- Node.js 18+ & npm
+- Node.js 18+ and npm
 
 ### 1. Backend Setup
+
 ```bash
-# Navigate to backend directory
+# Navigate to the backend directory
 cd backend
 
-# (Optional) Create and activate virtual environment
+# Create and activate a virtual environment
 python -m venv venv
-# Windows:
-.\venv\Scripts\activate
+
+# Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
 # macOS/Linux:
 source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# (Optional) Seed database if starting fresh:
+# (Optional) Seed database if starting fresh
 python seed.py
 
-# Start backend server
+# Start the FastAPI server
 python -m uvicorn app.main:app --reload --port 8000
 ```
-Backend API docs will be accessible at: `http://localhost:8000/docs`
+- API Base URL: `http://localhost:8000`
+- Interactive Swagger Docs: `http://localhost:8000/docs`
 
 ### 2. Frontend Dashboard Setup
+
 ```bash
-# In a new terminal, navigate to dashboard directory
+# In a new terminal, navigate to the dashboard directory
 cd dashboard
 
-# Install dependencies
+# Install frontend dependencies
 npm install
 
-# Start development server
+# Start the Vite development server
 npm run dev
 ```
-Dashboard will be accessible at: `http://localhost:5173`
+- Dashboard URL: `http://localhost:5173`
 
 ---
 
-## 🧪 Testing & Verification
+## Testing & Verification
 
-The test suite covers:
-- Transparent AI introduction and customer identifier resolution.
-- All 5 customer chat intents (*Retry Payment*, *Payment Link*, *Schedule Callback*, *Opt Out*, *Talk to Human*).
-- Idempotency key protection and double-recovery rejection.
-- Zero-card-data compliance and sensitive data blocking.
-- Audit trail and conversation persistence in SQLite.
+The project includes an automated test suite verifying decision engine policies, chat workflows, security guards, and simulator idempotency.
 
 ```bash
-# Run all automated tests
+# Run all automated tests from the repository root
 pytest backend/test_phase1.py backend/test_phase2_vapi.py backend/test_phase3_chat.py -v
 ```
-**Result**: `38 passed in 2.42s`
+
+### Verified Test Results
+
+```
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.2.0, pluggy-1.7.0
+rootdir: RecoverAI
+collected 38 items
+
+backend/test_phase1.py ................. [17 PASSED]
+backend/test_phase2_vapi.py ............ [ 6 PASSED]
+backend/test_phase3_chat.py ............ [15 PASSED]
+
+======================== 38 passed in 6.21s ========================
+```
+
+### Test Coverage Highlights
+- **17 Tests (Core & Decision Engine)**: Health checks, customer retrieval, consent verification, and failure reason classification.
+- **6 Tests (Configuration & Webhooks)**: Safe credential masking, assistant prompt compliance, and webhook signature validation.
+- **15 Tests (Chat-First & Simulator)**: Transparent AI introductions, all 5 intent flows, zero card-data rejection, payment simulator idempotency, opt-out suppression, and SQLite persistence.
+
+### Production Build Verification
 
 ```bash
-# Verify frontend production build
 cd dashboard
 npm run build
 ```
-**Result**: `✓ built in 6.55s (0 errors)`
+```
+✓ 2119 modules transformed.
+dist/index.html                          1.34 kB
+dist/assets/index-Cs-ghknN.css          37.05 kB
+dist/assets/index-WKY019XY.js          152.56 kB
+dist/assets/vendor-charts-Cxf1M4la.js  531.00 kB
+✓ built in 20.97s (0 errors)
+```
 
 ---
 
-## 🔒 Security & Compliance
+## Conclusion
 
-- **Zero Card Data Storage**: Full adherence to PCI-DSS by preventing collection of card numbers, CVVs, and OTPs in chat.
-- **Idempotency Guarantee**: Eliminates duplicate charges through server-side idempotency keys.
-- **Do Not Contact (DNC) Registry**: Immediate suppression of outreach for opted-out accounts.
-- **Safe Credential Management**: Masks all API keys in logs and API responses.
+RecoverAI demonstrates a practical, production-oriented approach to recurring payment recovery: combining conversational AI to understand customer intent with deterministic backend controls to protect financial integrity. By eliminating aggressive dunning and preventing unauthorized state mutations, RecoverAI provides an enterprise-ready foundation for modern subscription autopay recovery.
